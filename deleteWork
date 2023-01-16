@@ -1,0 +1,18 @@
+// 云函数入口文件
+const cloud = require('wx-server-sdk')
+
+cloud.init()
+
+// 云函数入口函数
+exports.main = async (event, context) => {
+    const db = cloud.database()
+    db.collection('student_work').where({
+        work_id:event._id
+    }).remove()
+    db.collection('work_answer').where({
+        work_id:event._id
+    }).remove()
+    return await db.collection('teacher_work').doc(event._id).remove()
+
+ 
+}
