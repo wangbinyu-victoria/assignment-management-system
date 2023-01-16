@@ -1,0 +1,63 @@
+// pages/work_detail_teacher/work_detail_teacher.js
+Page({
+
+
+    data: {
+        studentWorkList:[],
+        selectIndex:0,
+        tabs:[
+            {
+                id:0,
+                name:'已提交',
+            },
+            {
+                id:1,
+                name:'未提交',
+            }
+        ]
+    },
+
+    onLoad: function (options) {
+        this.setData({
+            work_id:options.work_id
+        })
+    },
+    onShow(){
+        wx.cloud.callFunction({
+            name:'getStudentWorkList',
+            data:{
+                work_id:this.data.work_id
+            }
+        }).then(res=>{
+            console.log(res)
+            this.setData({
+                studentWorkList:res.result.list
+            })
+        })
+    },
+
+    handleHomeWork_correcting(e){
+        var student_work = JSON.stringify(this.data.studentWorkList[e.currentTarget.dataset.index])
+        wx.navigateTo({
+          url: '/pages/HomeWork_correcting/HomeWork_correcting?student_work='+student_work,
+        })
+    },
+
+
+
+
+
+
+
+
+
+
+    
+    getSelectIndex(e){
+        this.setData({
+            selectIndex:e.detail.index
+        })
+    }
+
+
+})
