@@ -1,0 +1,38 @@
+// 云函数入口文件
+const cloud = require('wx-server-sdk')
+
+cloud.init()
+
+// 云函数入口函数
+exports.main = async (event, context) => {
+    const db = cloud.database()
+    //判断课程码是否存在
+    var e = await db.collection('course').where({
+        Cno:event.Cno
+    }).get()
+    // console.log(e.data.length)
+    console.log(event)
+    //课程码存在，判断用户是否已经加入此课程
+    if(e.data.length>0){
+        var f = await db.collection('student_course').where({
+            Cno:event.Cno,
+            Sno:event.Sno
+        }).get()
+        console.log('f:'+f)
+        //未加入，添加数据
+        if(f.data.length == 0){
+              return await db.collection('student_course').add({
+                data:{
+                    Cno:event.Cno,
+                    Sno:event.Sno
+                }
+            })
+        }
+        else{
+            return 0
+        }
+    }
+    else {
+        return -1
+    }
+}
