@@ -1,0 +1,112 @@
+// pages/register/register.js
+Page({
+
+    data: {
+        showPassword:false,
+        isRegister:0,
+        Sno:'',
+        password:'',
+        Sname:'',
+        class:'',
+        selectIndex:0,
+        Tno:'',
+        T_password:'',
+        Tname:'',
+        tabs:[
+            {
+                id:0,
+                name:'学生',
+            },
+            {
+                id:1,
+                name:'教师',
+            }
+        ]
+    },
+
+    handleRegister(){
+        if(this.data.selectIndex === 0){
+            var b = this.checkInput(this.data.Sno,this.data.Sname,this.data.password)
+        } else{
+            var b = this.checkInput(this.data.Tno,this.data.Tname,this.data.T_password)
+        }
+        if (this.data.selectIndex === 0 && b){
+            wx.cloud.callFunction({
+                name:'register_student',
+                data:{
+                    Sno:this.data.Sno,
+                    Sname:this.data.Sname,
+                    password:this.data.password,
+                    class:this.data.class
+                }
+            }).then(res=>{
+                console.log(res)
+                this.myShowToast(res)
+            })
+        }
+        else if(this.data.selectIndex === 1 && b){
+            wx.cloud.callFunction({
+                name:'register_teacher',
+                data:{
+                    Tno:this.data.Tno,
+                    Tname:this.data.Tname,
+                    password:this.data.T_password,
+                }
+            }).then(res=>{
+                console.log(res)
+                this.myShowToast(res)
+            })
+        }
+    },
+
+    getSelectIndex(e){
+        this.setData({
+            selectIndex:e.detail.index
+        })
+    },
+
+    handleShowPassword(){
+        this.setData({
+            showPassword:!this.data.showPassword
+        })
+    },
+
+    myShowToast(res){
+        if(res.result === 0){
+            wx.showToast({
+              title: '已存在该用户',
+              icon:'error',
+            })
+        }
+        else{
+            wx.showToast({
+                title: '创建成功',
+                icon:'success',
+              })     
+        }
+    },
+
+    checkInput(Sno,name,password){
+        if(Sno.length != 12) {
+            this.toast('学号或教师号格式不正确，长度需等于12')
+            return false
+        }
+        if(name.length === 0){
+            this.toast('请输入你的名字')
+            return false
+        }
+        if(password.length<6){
+            this.toast('密码长度需要大于5')
+            return false
+        }
+        return true
+    },
+
+    toast(word){
+        wx.showToast({
+          title: word,
+          icon:'none'
+        })
+    }
+
+})
