@@ -1,0 +1,79 @@
+import { myHideLoading, myShowLoading } from "../../func/request"
+
+Page({
+
+    data: {
+        login:true,
+        courseList:[],
+    },
+
+    onLoad(){
+        this.setData({
+            frag:true
+        })
+    },
+
+    onShow(){
+        if(this.data.frag){
+            myShowLoading()
+        }
+        this.setData({
+            isLogin:wx.getStorageSync('isLogin'),
+            identity:wx.getStorageSync('identity')
+        })
+        if(this.data.identity === 'student'){
+            //请求学生课程列表
+            wx.cloud.callFunction({
+                name:'getCourseList_student',
+                data:{
+                    Sno:wx.getStorageSync('userInfo')
+                }
+            }).then(res=>{
+                console.log(res)
+                this.setData({
+                    courseList:res.result.list
+                })
+            })
+        } 
+        else {
+            wx.cloud.callFunction({
+                name:"getCoruseList_T",
+                data:{
+                    Tno:wx.getStorageSync('userInfo')
+                }
+            }).then(res=>{
+                this.setData({
+                    courseList:res.result.data
+                })
+            })
+        }
+        myHideLoading()
+        this.setData({
+            frag:false
+        })
+
+
+    },
+
+    handleJoinCourse(){
+        wx.navigateTo({
+          url: '/pages/joinCourse/joinCourse',
+        })
+    },
+
+    handleToNextPage(e){
+        var id = e.currentTarget.dataset.id
+        console.log(e)
+        wx.navigateTo({
+            url:"/pages/course_teacher/course_teacher?_id="+id
+        })
+    },
+
+    handleLogin(){
+        wx.navigateTo({
+          url: '/pages/login/login',
+        })
+    }
+
+
+})
