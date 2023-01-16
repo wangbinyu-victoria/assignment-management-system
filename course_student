@@ -1,0 +1,46 @@
+import { myHideLoading, myShowLoading } from "../../func/request"
+
+// pages/course_student/course_student.js
+Page({
+
+    /**
+     * 页面的初始数据
+     */
+    data: {
+      Cno:'',
+      workList:[],
+      nowDate:null
+    },
+    onLoad(options){
+      myShowLoading()
+      this.setData({
+        Cno:options.Cno
+      })
+
+    },
+
+    
+    onShow(options){
+      wx.cloud.callFunction({
+        name:'getWorkList_student',
+        data:{
+          Cno:this.data.Cno
+        }
+      }).then(res=>{
+        this.setData({
+          workList:res.result.data,
+          nowDate:new Date().getTime()
+        })
+      })
+      myHideLoading()
+      
+    },
+
+    handleWorkDetail(e){
+      console.log(e)
+        var work = JSON.stringify(this.data.workList[e.currentTarget.dataset.index])
+        wx.navigateTo({
+          url: '/pages/work_detail_student/work_detail_student?work='+work
+        })
+    }
+})
