@@ -1,0 +1,72 @@
+// pages/teacherInfo/teacherInfo.js
+Page({
+
+
+    data: {
+        isEdit:false,
+        department:'',
+        telNum:'',
+        Email:''
+    },
+
+    onLoad: function (options) {
+        this.setData({
+            Tno:wx.getStorageSync('userInfo')
+        })
+        this.getTeacherInfo()
+    },
+
+
+    getTeacherInfo(){
+        wx.cloud.callFunction({
+            name:'getTeacherInfo',
+            data:{
+                Tno:this.data.Tno
+            }
+        })
+        .then(res=>{
+            console.log(res)
+            this.setData({
+                teacherInfo:res.result.data[0],
+                department:res.result.data[0].department,
+                telNum:res.result.data[0].telNum,
+                Email:res.result.data[0].Email
+            })
+        })
+    },
+
+    handleLogout(){
+        wx.removeStorageSync('userInfo')
+        wx.removeStorageSync('identity')
+        wx.removeStorageSync('isLogin')
+        wx.reLaunch({
+          url: '/pages/login/login',
+        })
+    },
+
+    handleEdit(){
+        this.setData({
+            isEdit:!this.data.isEdit
+        })
+    },
+
+    handleAccomEdit(){
+        wx.cloud.callFunction({
+            name:'updataTeacherInfo',
+            data:{
+                _id:this.data.teacherInfo._id,
+                department:this.data.department,
+                telNum:this.data.telNum,
+                Email:this.data.Email
+            }
+        })
+        .then(res=>{
+            this.getTeacherInfo()
+            wx.showToast({
+              title: '修改成功',
+            })
+            this.handleEdit()
+        })
+    }
+
+})
