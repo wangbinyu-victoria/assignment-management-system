@@ -1,0 +1,54 @@
+// pages/courseManage_student/courseManage_student.js
+Page({
+
+    data: {
+
+    },
+
+    onLoad: function (options) {
+        this.getCourseList()
+    },
+
+    exitCourse(e){
+        console.log(e)
+        wx.showModal({
+            cancelColor: 'cancelColor',
+            title:'退出',
+            content:'确定退出该课程？',
+          }).then(res=>{
+              if(res.confirm){
+                  var index = e.currentTarget.dataset.index
+                  console.log(index)
+                  wx.cloud.callFunction({
+                      name:'deleteStudent',
+                      data:{
+                          Cno:this.data.courseList[index].Cno,
+                          Sno:wx.getStorageSync('userInfo')
+                      }
+                  }).then(res=>{
+                      console.log(res)
+                      this.getCourseList()
+                  })
+              }
+              else if(res.cancel) {
+  
+              }
+          })
+      },
+
+      //获取课程列表
+      getCourseList(){
+        wx.cloud.callFunction({
+            name:'getCourseList_student',
+            data:{
+                Sno:wx.getStorageSync('userInfo')
+            }
+        }).then(res=>{
+            this.setData({
+                courseList:res.result.list
+            })
+        })
+      }
+
+})
+
