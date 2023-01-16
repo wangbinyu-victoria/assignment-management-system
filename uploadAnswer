@@ -1,0 +1,200 @@
+// pages/uploadAnswer/uploadAnswer.js
+Page({
+
+    data: {
+        uploadFileList:[],
+        uploadImageList:[],
+        fileIDList:[],
+        imageIDList:[],
+        files:[],
+        work:{},
+        text:'',
+    },
+
+    onLoad: function (options) {
+        this.setData({
+            work:JSON.parse(options.work)
+        })
+        this.getAnswer()
+    },
+
+
+    //下载文件并预览文件
+    handleDownloadFile(e){
+        wx.showLoading({
+            title:'打开中...',
+            mask:true
+
+        })
+        // console.log(e)
+        wx.cloud.downloadFile({
+            fileID:e.currentTarget.dataset.fileid
+        }).then(res=>{
+            console.log(res)
+            wx.openDocument({
+              filePath: res.tempFilePath,
+            })
+            wx.hideLoading({
+            })
+        })
+    },
+
+    handleDownloadFile2(e){
+        console.log(e)
+        wx.cloud.downloadFile({
+            fileID:e.currentTarget.dataset.fileid
+        }).then(res=>{
+            wx.openDocument({
+              filePath: res.tempFilePath,
+            })
+        })
+    },
+    
+
+    //预览图片
+    handlePerviewImage(e){
+        var index = e.currentTarget.dataset.index
+        wx.previewImage({
+          urls: this.data.uploadImageList,
+          current:this.data.uploadImageList[index]
+        })
+    },
+    
+    //预览图片
+    handlePerviewImage2(e){
+        var index = e.currentTarget.dataset.index
+        wx.previewImage({
+          urls: this.data.work.images,
+          current:this.data.work.images[index]
+        })
+    },
+
+    // 选择文件,获取临时文件路径
+    handleGetFileInfo(){
+        wx.chooseMessageFile({
+            count: 10,
+
+        }).then(res=>{
+            console.log(res)
+            this.setData({
+                uploadFileList:[...this.data.uploadFileList,...res.tempFiles]
+            })
+        })
+    },
+
+    // 选择图片,获取临时图片路径
+    handleGetImageInfo(){
+        wx.chooseImage({
+            count: 10,
+        }).then(res=>{
+            this.setData({
+                uploadImageList:[...this.data.uploadImageList, ...res.tempFilePaths]
+            })
+        })
+    },
+
+    //取消选择的图片
+    handleCancelImg(e){
+        var index = e.currentTarget.dataset.index
+        var list = this.data.uploadImageList
+        list.splice(index,1)
+        this.setData({
+            uploadImageList:list
+        })
+    },    
+
+    //正式提交作业
+    handleSubmit(){
+        wx.showLoading({
+          title: '提交中...',
+          mask: true,
+        })
+        var len = this.data.uploadImageList.length
+        var length = this.data.uploadFileList.length
+        this.data.uploadFileList.forEach(element => {
+            wx.cloud.uploadFile({
+                cloudPath: 'file_student/'+Date.now()+'|'+element.name,
+                filePath:element.path
+            }).then(res=>{
+                element.fileID = res.fileID
+                if (this.data.uploadFileList[length-1] === element) {
+                    console.log(3)
+                    this.MyuploadImg(this.data.uploadImageList)
+                }
+
+            })
+        });
+        if(length === 0 && len != 0){
+            console.log(2)
+            this.MyuploadImg(this.data.uploadImageList)
+        }
+        if(length === 0 && len === 0){
+            console.log(1)
+            this.uploadWork()
+        }
+        wx.hideLoading()
+        wx.showToast({
+          title: '提交成功',
+          duration: 1500,
+          icon: 'success',
+          mask: true
+        }) 
+    },
+
+    //通过云函数上传答案
+    uploadWork(){
+        wx.cloud.callFunction({
+            name:'addAnswer',
+            data:{
+                work_id:this.data.work._id,
+                Cno:this.data.work.Cno,
+                Tno:this.data.work.Tno,
+                text:this.data.text,
+                file:this.data.uploadFileList,
+                images:this.data.imageIDList
+            }
+        })
+    },
+
+    MyuploadImg(list){
+        var len = list.length
+        var mylist = []
+        list.forEach(element => {
+            wx.cloud.uploadFile({
+                cloudPath: 'images_student/'+Date.now()+'.jpg',
+                filePath:element
+            }).then(res=>{
+                mylist.push(res.fileID)
+                this.setData({
+                    imageIDList:mylist
+                })
+                if(element === list[len-1]){
+                    console.log(4)
+                    this.uploadWork()
+                }
+            })
+        });
+    },
+
+    //获取学生已提交的作业
+    getAnswer(){
+        wx.cloud.callFunction({
+            name:'getAnswer',
+            data:{
+                work_id:this.data.work._id,
+            }
+        }).then(res=>{
+            console.log(res)
+            this.setData({
+                answer:res.result.data[0],
+                text:res.result.data[0].text,
+                uploadFileList:[...this.data.uploadFileList,...(res.result.data[0].file)],
+                uploadImageList:res.result.data[0].images
+            })
+        })
+    },
+
+
+
+
+})
