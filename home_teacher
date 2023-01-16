@@ -1,0 +1,31 @@
+// pages/home_teacher/home_teacher.js
+Page({
+
+    data: {
+        courseList:[]
+    },
+
+    onShow: function (options) {
+        wx.getSystemInfo().then(res=>{
+            console.log(res)
+        })
+        wx.cloud.callFunction({
+            name:"getCoruseList_T",
+            data:{
+                Tno:wx.getStorageSync('userInfo')
+            }
+        }).then(res=>{
+            this.setData({
+                courseList:res.result.data
+            })
+        })
+    },
+
+    handleToNextPage(e){
+        var id = e.currentTarget.dataset.id
+        console.log(e)
+        wx.navigateTo({
+            url:"/pages/course_teacher/course_teacher?_id="+id
+        })
+    }
+})
