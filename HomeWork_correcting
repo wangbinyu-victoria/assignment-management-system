@@ -1,0 +1,77 @@
+import {request} from '../../func/request.js'
+// import {request} from "../../request/index.js";
+
+Page({
+
+    data: {
+        student_work:{},
+        score:'',
+        remark:"",
+        
+    },
+    onLoad: function (options) {
+        this.setData({
+            student_work:JSON.parse(options.student_work)
+        })
+        setInterval({
+            
+        })
+        
+    },
+    onShow(){
+        this.updataStudent_work()
+    },
+
+    handleDownloadFile(e){
+        console.log(e)
+        wx.cloud.downloadFile({
+            fileID:e.currentTarget.dataset.fileid
+        }).then(res=>{
+            console.log(res)
+            wx.openDocument({
+              filePath: res.tempFilePath,
+            })
+        })
+    },
+
+    handleUploadCorrecting(){
+        // wx.cloud.callFunction({
+        //     name:'correcting',
+        //     data:{
+        //         work_id:this.data.student_work.work_id,
+        //         remark:this.data.remark,
+        //         score:this.data.score,
+        //         isCorrecting:true
+        //     }
+        // })
+
+        wx.cloud.callFunction({name:'correcting', data:{                
+            work_id:this.data.student_work.work_id,
+            remark:this.data.remark,
+            score:this.data.score,
+            isCorrecting:true}}).then(res=>{
+                this.updataStudent_work()
+            })
+    },
+
+    updataStudent_work(){
+        wx.cloud.callFunction({
+            name:'getStudentWork',
+            data:{
+                _id:this.data.student_work._id
+            }
+        }).then(res=>{
+            this.setData({
+                student_work:res.result.list[0]
+            })
+        })
+    },
+
+    handlePerviewImage(e){
+        var index = e.currentTarget.dataset.index
+        wx.previewImage({
+          urls: this.data.student_work.images,
+          current:this.data.student_work.images[index]
+        })
+    },
+})
