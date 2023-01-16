@@ -1,0 +1,55 @@
+// pages/getScoreAndAnswer/getScoreAndAnswer.js
+Page({
+
+
+    data: {
+
+    },
+
+    onLoad: function (options) {
+        this.setData({
+            student_work:JSON.parse(options.student_work)
+        }),
+        this.getAnswer()
+    },
+
+    //获奖答案
+    getAnswer(){
+        wx.cloud.callFunction({
+            name:'getAnswer',
+            data:{
+                work_id:this.data.student_work.work_id
+            }
+        })
+        .then(res=>{
+            this.setData({
+                answer:res.result.data[0]
+            })
+        })
+    },
+
+
+    //下载文件并预览文件
+    handleDownloadFile(e){
+        var index = e.currentTarget.dataset.index
+        wx.cloud.downloadFile({
+            fileID:this.data.answer.file[index].fileID
+        }).then(res=>{
+            console.log(res)
+            wx.openDocument({
+                filePath: res.tempFilePath,
+            })
+        })
+    },
+
+    //预览图片
+    handlePerviewImage(e){
+        var index = e.currentTarget.dataset.index
+        wx.previewImage({
+            urls: this.data.answer.images,
+            current:this.data.answer.images[index]
+        })
+    },
+    
+
+})
