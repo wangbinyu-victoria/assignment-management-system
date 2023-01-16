@@ -1,0 +1,217 @@
+import { myHideLoading, myShowLoading } from "../../func/request"
+
+// pages/work_detail/work_detail.js
+Page({
+    data: {
+        nowData:'',
+        uploadFileList:[],
+        uploadImageList:[],
+        fileIDList:[],
+        imageIDList:[],
+        files:[],
+        work:{},
+        text:'',
+        student_work:{},
+        submit:false
+
+    },
+    onLoad: function (options) {
+        myShowLoading()
+        this.setData({
+            work:JSON.parse(options.work)
+        }),
+        this.getStudentWork()
+    },
+
+    onShow(){
+        this.setData({
+            nowDate:new Date().getTime()
+        })
+        myHideLoading()
+    },
+
+    //下载文件并预览文件
+    handleDownloadFile(e){
+        wx.showLoading({
+            title:'打开中...',
+            mask:true
+
+        })
+        console.log(e)
+        wx.cloud.downloadFile({
+            fileID:e.currentTarget.dataset.fileid
+        }).then(res=>{
+            console.log(res)
+            wx.openDocument({
+              filePath: res.tempFilePath,
+            }),
+            wx.hideLoading({
+            })
+        })
+
+    },
+
+    // 
+    handleOpenDocument(e){
+        // wx.cloud.getTempFileURL({
+        //     fileList:[e.currentTarget.dataset.fileid]
+        // }).then(res=>{
+        //     console.log(res.fileList[0])
+        //     // wx.openDocument({
+        //     //   filePath: res.fileList[0].tempFileURL
+        //     // })
+        // })
+    },
+
+    // 选择文件,获取临时文件路径
+    handleGetFileInfo(){
+        wx.chooseMessageFile({
+          count: 10,
+
+        }).then(res=>{
+            console.log(res)
+            this.setData({
+                uploadFileList:[...this.data.uploadFileList,...res.tempFiles]
+            })
+        })
+    },
+
+    // 选择图片,获取临时图片路径
+    handleGetImageInfo(){
+        wx.chooseImage({
+          count: 10,
+        }).then(res=>{
+            this.setData({
+                uploadImageList:[...this.data.uploadImageList, ...res.tempFilePaths]
+            })
+        })
+    },
+
+    //预览图片
+    handlePerviewImage(e){
+        var index = e.currentTarget.dataset.index
+        wx.previewImage({
+          urls: this.data.uploadImageList,
+          current:this.data.uploadImageList[index]
+        })
+    },
+
+    //预览图片
+    handlePerviewImage2(e){
+        var index = e.currentTarget.dataset.index
+        wx.previewImage({
+          urls: this.data.work.images,
+          current:this.data.work.images[index]
+        })
+    },
+
+    //取消选择的图片
+    handleCancelImg(e){
+        var index = e.currentTarget.dataset.index
+        var list = this.data.uploadImageList
+        list.splice(index,1)
+        this.setData({
+            uploadImageList:list
+        })
+    },
+
+    //正式提交作业
+    handleSubmit(){
+        wx.showLoading({
+          title: '提交中...',
+          mask: true,
+        })
+        // this.MyuploadImg(this.data.uploadImageList)
+        var len = this.data.uploadImageList.length
+        var length = this.data.uploadFileList.length
+        this.data.uploadFileList.forEach(element => {
+            wx.cloud.uploadFile({
+                cloudPath: 'file_student/'+Date.now()+'|'+element.name,
+                filePath:element.path
+            }).then(res=>{
+                element.fileID = res.fileID
+                if (this.data.uploadFileList[length-1] === element) {
+                    console.log(3)
+                    this.MyuploadImg(this.data.uploadImageList)
+                }
+
+            })
+        });
+        if(length === 0 && len != 0){
+            console.log(2)
+            this.MyuploadImg(this.data.uploadImageList)
+        }
+        if(length === 0 && len === 0){
+            console.log(1)
+            this.uploadWork()
+        }
+        wx.hideLoading()
+        wx.showToast({
+          title: '提交成功',
+          duration: 1500,
+          icon: 'success',
+          mask: true
+        }) 
+        this.getStudentWork()
+    },
+
+    //通过云函数提交作业
+    uploadWork(){
+        wx.cloud.callFunction({
+            name:'submitWork',
+            data:{
+                work_id:this.data.work._id,
+                Cno:this.data.work.Cno,
+                Sno:wx.getStorageSync('userInfo'),
+                text:this.data.text,
+                file:this.data.uploadFileList,
+                sumbitDate:new Date().getTime(),
+                images:this.data.imageIDList
+            }
+        })
+    },
+
+    //获取学生已提交的作业
+    getStudentWork(){
+        wx.cloud.callFunction({
+            name:'getStudentWork',
+            data:{
+                work_id:this.data.work._id,
+                Sno:wx.getStorageSync('userInfo')
+            }
+        }).then(res=>{
+            this.setData({
+                student_work:res.result.list[0],
+                uploadFileList:[...this.data.uploadFileList,...(res.result.list[0].file)],
+            })
+        })
+    },
+
+    MyuploadImg(list){
+        var len = list.length
+        var mylist = []
+        list.forEach(element => {
+            wx.cloud.uploadFile({
+                cloudPath: 'images_student/'+Date.now()+'.jpg',
+                filePath:element
+            }).then(res=>{
+                mylist.push(res.fileID)
+                this.setData({
+                    imageIDList:mylist
+                })
+                if(element === list[len-1]){
+                    console.log(4)
+                    this.uploadWork()
+                }
+            })
+        });
+    },
+
+    handleGetScoreAndAnswer(){
+        wx.navigateTo({
+          url: '/pages/getScoreAndAnswer/getScoreAndAnswer?student_work='+JSON.stringify(this.data.student_work),
+        })
+    }
+
+
+})
