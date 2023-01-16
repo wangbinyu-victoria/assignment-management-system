@@ -1,0 +1,291 @@
+// pages/release_work/release_work.js
+Page({
+
+
+    data: {
+        Cno:'',
+        text:'',
+        uploadFileList:[],
+        uploadImageList:[],
+        fileIDList:[],
+        imageIDList:[],
+        title:'',
+        show:false,
+        deadline:'',
+        minHour: 10,
+        maxHour: 20,
+        minDate: new Date().getTime(),
+        maxDate: new Date(2025, 10, 1).getTime(),
+        currentDate: new Date().getTime(),
+        formatter(type, value) {
+            if (type === 'year') {
+              return `${value}年`;
+            }
+            if (type === 'month') {
+              return `${value}月`;
+            }
+            if(type === 'day'){
+                return `${value}日`;
+            }
+            if(type === 'hour'){
+                return `${value}时`;
+            }
+            if(type === 'minute'){
+                return `${value}分`;
+            }
+            return value;
+          },
+        
+    },
+
+    onLoad: function (options) {
+        console.log(options)
+        this.setData({
+            Cno:options.Cno,
+            deadline:this.timestampToTime(new Date().getTime())
+        })
+    },
+
+    onShow(){
+
+    },
+
+    onInput(event) {
+        this.setData({
+          currentDate: event.detail,
+        });
+      },
+    
+      confirmDate(){
+          this.setData({
+              show:false,
+              deadline:this.timestampToTime(this.data.currentDate)
+          })
+      },
+      handleSelectDate(){
+          this.setData({
+              show:true
+          })
+      },
+      cancelSelect(){
+          this.setData({
+              show:false
+          })
+      },
+
+      onClose(){
+          this.setData({
+              show:false
+          })
+      },
+
+    //   时间戳转换为时间
+    timestampToTime(timestamp) {
+        timestamp = timestamp ? timestamp : null;
+        let date = new Date(timestamp);//时间戳为10位需*1000，时间戳为13位的话不需乘1000
+        let Y = date.getFullYear() + '-';
+        let M = (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1) + '-';
+        let D = (date.getDate() < 10 ? '0' + date.getDate() : date.getDate()) + ' ';
+        let h = (date.getHours() < 10 ? '0' + date.getHours() : date.getHours()) + ':';
+        let m = (date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()) + ':';
+        let s = date.getSeconds() < 10 ? '0' + date.getSeconds() : date.getSeconds();
+        return Y + M + D + h + m + s;
+    },
+
+    // 时间转换为时间戳
+    timeToTimestamp(time){
+        let timestamp = Date.parse(new Date(time).toString());
+        console.log(time + "的时间戳为：" + timestamp);
+        return timestamp;
+    },
+
+    // 选择文件
+    handleGetFileInfo(){
+        wx.chooseMessageFile({
+          count: 10,
+
+        }).then(res=>{
+            console.log(res)
+            this.setData({
+                uploadFileList:[...this.data.uploadFileList,...res.tempFiles]
+            })
+        })
+    },
+
+    handleGetImageInfo(){
+        wx.chooseImage({
+          count: 10,
+        }).then(res=>{
+            this.setData({
+                uploadImageList:[...this.data.uploadImageList, ...res.tempFilePaths]
+            })
+        })
+    },
+
+    //异步转同步
+    handlePostWork(){
+        wx.showLoading({
+          title: '发布中',
+          mask: true,
+        })
+        var length = this.data.uploadFileList.length
+        this.data.uploadFileList.forEach(e => {
+            wx.cloud.uploadFile({
+                cloudPath:'file_teacher/'+ Date.now()+'|'+e.name,
+                filePath:e.path
+            }).then(res=>{
+                e.fileID = res.fileID
+                if (this.data.uploadFileList[length-1] === e){
+                    this.uploadFile()
+                }
+            })
+        });
+        if(length === 0){
+            this.uploadFile()
+        }
+        wx.hideLoading()
+        wx.showToast({
+          title: '发布成功',
+          duration: 2000,
+          icon: 'success',
+          mask: true,
+        })
+
+    },
+
+    uploadFile(){
+        wx.cloud.callFunction({
+            name:'addWork',
+            data:{
+                title:this.data.title,
+                text:this.data.text,
+                // AssigenDate:AssigenDate,
+                Cno:this.data.Cno,
+                Tno:wx.getStorageSync('userInfo'),
+                deadline:this.timeToTimestamp(this.data.deadline),
+                file:this.data.uploadFileList
+            }
+        })
+    },
+// -----------------------------------------------------
+    uploadWork(){
+        wx.cloud.callFunction({
+            name:'addWork',
+            data:{
+                title:this.data.title,
+                text:this.data.text,
+                // AssigenDate:AssigenDate,
+                Cno:this.data.Cno,
+                Tno:wx.getStorageSync('userInfo'),
+                deadline:this.timeToTimestamp(this.data.deadline),
+                file:this.data.uploadFileList,
+                images:this.data.imageIDList
+            }
+        })
+    },
+
+    handleSubmit(){
+        if(this.checkInput()){
+            return
+        }
+        wx.showLoading({
+        title: '提交中...',
+        mask: true,
+        })
+        // this.MyuploadImg(this.data.uploadImageList)
+        var len = this.data.uploadImageList.length
+        var length = this.data.uploadFileList.length
+        this.data.uploadFileList.forEach(element => {
+            wx.cloud.uploadFile({
+                cloudPath: 'file_teacher/'+Date.now()+'|'+element.name,
+                filePath:element.path
+            }).then(res=>{
+                element.fileID = res.fileID
+                if (this.data.uploadFileList[length-1] === element) {
+                    console.log(3)
+                    this.MyuploadImg(this.data.uploadImageList)
+                }
+
+            })
+        });
+        if(length === 0 && len != 0){
+            console.log(2)
+            this.MyuploadImg(this.data.uploadImageList)
+        }
+        if(length === 0 && len === 0){
+            console.log(1)
+            this.uploadWork()
+        }
+        wx.hideLoading()
+        wx.showToast({
+        title: '提交成功',
+        duration: 1500,
+        icon: 'success',
+        mask: true
+        }) 
+    },
+
+    MyuploadImg(list){
+        var len = list.length
+        var mylist = []
+        list.forEach(element => {
+            wx.cloud.uploadFile({
+                cloudPath: 'images_teacher/'+Date.now()+'.jpg',
+                filePath:element
+            }).then(res=>{
+                mylist.push(res.fileID)
+                this.setData({
+                    imageIDList:mylist
+                })
+                if(element === list[len-1]){
+                    console.log(4)
+                    this.uploadWork()
+                }
+            })
+        });
+    },
+    
+    //下载文件并预览文件
+    handleDownloadFile(e){
+        console.log(e)
+        wx.cloud.downloadFile({
+            fileID:e.currentTarget.dataset.fileid
+        }).then(res=>{
+            console.log(res)
+            wx.openDocument({
+                filePath: res.tempFilePath,
+            })
+        })
+    },
+
+    checkInput(){
+        console.log(this.data.title.length)
+        if(this.data.title.length === 0){
+            wx.showToast({
+              title: '请输入作业标题',
+              icon:'error'
+            })
+            return true
+        }
+    },
+
+    //预览图片
+    handlePerviewImage(e){
+        var index = e.currentTarget.dataset.index
+        wx.previewImage({
+          urls: this.data.uploadImageList,
+          current:this.data.uploadImageList[index]
+        })
+    },
+
+    //取消选择的图片
+    handleCancelImg(e){
+        var index = e.currentTarget.dataset.index
+        var list = this.data.uploadImageList
+        list.splice(index,1)
+        this.setData({
+            uploadImageList:list
+        })
+    },  
+
+})
