@@ -1,0 +1,91 @@
+import { myHideLoading, myShowLoading } from "../../func/request"
+
+Page({
+
+    data: {
+      course_id:'',
+      courseInfo:{},
+      nowDate:null
+    },
+
+    onLoad: function (options) {
+      myShowLoading()
+      console.log(options)  
+      this.setData({
+        course_id:options._id
+      })
+
+      //获取课程信息
+      wx.cloud.callFunction({
+        name:'getCourseInfo',
+        data:{
+          _id:options._id
+        }
+      }).then(res=>{
+        console.log(res)
+        this.setData({
+          courseInfo:res.result.data,
+          flag:true
+        })
+        //获取作业列表
+        this.getWorkList()
+      })
+    },
+
+    onShow(){
+      this.setData({
+        nowDate:new Date().getTime()
+      })
+      this.getWorkList()
+      myHideLoading()
+    },
+    handleWorkDetail(e){
+        wx.navigateTo({
+          url: '/pages/work_detail_teacher/work_detail_teacher?work_id='+this.data.workList[e.currentTarget.dataset.index]._id
+        })
+    },
+
+    handleUploadAnswer(e){
+      var work = JSON.stringify(this.data.workList[e.currentTarget.dataset.index])
+      wx.navigateTo({
+        url: '/pages/uploadAnswer/uploadAnswer?work='+work,
+      })
+    },
+
+    handleDeleteWork(e){
+      var index = e.currentTarget.dataset.index
+      wx.showModal({
+        title:'删除作业',
+        content:'确定删除该作业'
+      })
+      .then(res=>{
+        if(res.confirm){
+          wx.cloud.callFunction({
+            name:'deleteWork',
+            data:{
+              _id:this.data.workList[index]._id
+            }
+          })
+          .then(res=>{
+            console.log(res)
+            this.getWorkList()
+          })
+        }
+      })
+    },
+
+    //获取作业列表
+    getWorkList(){
+      wx.cloud.callFunction({
+        name:'getWorkList_teacher',
+        data:{
+          Tno:wx.getStorageSync('userInfo'),
+          Cno:this.data.courseInfo.Cno
+        }
+      }).then(res=>{
+        this.setData({
+          workList:res.result.data
+        })
+      })
+    }
+})
