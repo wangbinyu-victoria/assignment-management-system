@@ -1,0 +1,38 @@
+// pages/studentInfo/studentInfo.js
+Page({
+
+    data: {
+
+    },
+
+    onLoad: function (options) {
+        this.setData({
+            Sno:wx.getStorageSync('userInfo')
+        })
+        this.getStudentInfo()
+    },
+
+    getStudentInfo(){
+        wx.cloud.callFunction({
+            name:'getStudentInfo',
+            data:{
+                Sno:this.data.Sno
+            }
+        })
+        .then(res=>{
+            this.setData({
+                studentInfo:res.result.data[0]
+            })
+        })
+    },
+
+    handkeLogout(){
+        wx.removeStorageSync('userInfo')
+        wx.removeStorageSync('identity')
+        wx.removeStorageSync('isLogin')
+        wx.reLaunch({
+          url: '/pages/login/login',
+        })
+    }
+
+})
