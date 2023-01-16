@@ -1,0 +1,27 @@
+// 云函数入口文件
+const cloud = require('wx-server-sdk')
+
+cloud.init()
+
+// 云函数入口函数
+exports.main = async (event, context) => {
+    const db = cloud.database()
+    var newCourse
+    await db.collection('course').add({
+        data:{
+            Cname:event.Cname,
+            Tno:event.Tno,
+            cover:event.cover,
+            AssigenDate:new Date().getTime()
+        }
+    }).then(res=>newCourse = res)
+    console.log(newCourse._id)
+    //生成课程码
+    var Cno = newCourse._id.slice(0,3) + newCourse._id.slice(newCourse._id.length-3,newCourse._id.length)
+    await db.collection("course").doc(newCourse._id).update({
+        data:{
+            Cno:Cno
+        }
+    })
+    return await db.collection('course').doc(newCourse._id).get()
+}
