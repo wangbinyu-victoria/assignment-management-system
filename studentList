@@ -1,0 +1,58 @@
+// pages/studentList/studentList.js
+Page({
+
+    data: {
+
+    },
+    onLoad: function (options) {
+        this.setData({
+            Cno:options.Cno
+        })
+        this.getStudentList()
+
+    },
+
+    //将学生从课程删除
+    handleDeleteStudent(e){
+        wx.showModal({
+          cancelColor: 'cancelColor',
+          title:'移除学生',
+          content:'确定将学生从该课程移除？',
+        }).then(res=>{
+            if(res.confirm){
+                var index = e.currentTarget.dataset.index
+                console.log(index)
+                wx.cloud.callFunction({
+                    name:'deleteStudent',
+                    data:{
+                        Cno:this.data.Cno,
+                        Sno:this.data.studentList[index].Sno
+                    }
+                }).then(res=>{
+                    console.log(res)
+                    this.getStudentList()
+                })
+            }
+            else if(res.cancel) {
+
+            }
+        })
+    },
+
+    //获取该课程学生列表
+    getStudentList(){
+        wx.cloud.callFunction({
+            name:'getStudentList',
+            data:{
+                Cno:this.data.Cno
+            }
+        })
+        .then(res=>{
+            console.log(res)
+            this.setData({
+                studentList:res.result.list
+            })
+        })
+    }
+
+})
