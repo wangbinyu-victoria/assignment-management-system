@@ -1,0 +1,72 @@
+import { myHideLoading, myShowLoading } from "../../func/request"
+
+// pages/build_course/build_course.js
+Page({
+
+    data: {
+        Cname:'',
+    },
+
+    onLoad(){
+        
+    },
+    handleSelectCover(){
+        wx.chooseImage({
+          count: 1,
+        }).then( res=>{
+            this.setData({
+                cover:res.tempFilePaths[0]
+            })
+        })
+    },
+
+    handleBuildCoruse(){
+        myShowLoading('创建中')
+        this.checkCname()
+        if(this.data.Cname.length > 0 && this.data.cover){
+            wx.cloud.uploadFile({
+                cloudPath:'course_coverImg/'+new Date().getTime()+'jpg',
+                filePath:this.data.cover
+            }).then(res=>{
+                console.log(res)
+                this.setData({
+                    coverID:res.fileID
+                })
+                this.addCourse()
+            })
+        }
+        if(this.data.Cname.length > 0 && !this.data.cover){
+            this.addCourse()
+        }
+        myHideLoading()
+    },
+
+
+    addCourse(){
+        var data = wx.cloud.callFunction({
+            name:'addCoruse',
+            data:{
+                Cname:this.data.Cname,
+                Tno:wx.getStorageSync('userInfo'),
+                cover:this.data.coverID
+            }
+        })
+        .then(res=>{
+            console.log(res)
+            var data = res
+            wx.navigateTo({
+              url: '/pages/course_show/course_show?course='+JSON.stringify(res.result.data)
+            })
+        })
+    },
+
+    checkCname(){
+        if(this.data.Cname.length <= 0) {
+            wx.showToast({
+              title: '请输入课程名',
+              icon:'error'
+            })
+        }
+    }
+
+})
