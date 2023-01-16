@@ -1,0 +1,36 @@
+// 云函数入口文件
+const cloud = require('wx-server-sdk')
+
+cloud.init()
+
+// 云函数入口函数
+exports.main = async (event, context) => {
+    const db = cloud.database()
+        try{
+            //课程表删除课程
+            await db.collection('course').where({
+                Cno:event.Cno,
+                Tno:event.Tno
+            }).remove()
+            //将该课程的作业删除
+            await db.collection('teacher_work').where({
+                Cno:event.Cno,
+                Tno:event.Tno
+            }).remove()
+            //将该课程学生提交的作业删除
+            await db.collection('student_work').where({
+                Cno:event.Cno,
+            }).remove()
+            //将该课程作业的参考答案删除
+            await db.collection('work_answer').where({
+                Cno:event.Cno,
+                Tno:event.Tno
+            }).remove()
+            //从学生选课表删除记录
+            return await db.collection('student_course').where({
+                Cno:event.Cno,
+            }).remove()
+        } catch(e){
+            console.error(e)
+        }
+}
