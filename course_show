@@ -1,0 +1,15 @@
+// pages/course_show/course_show.js
+Page({
+
+    data: {
+        course:{}
+    },
+
+    onLoad: function (options) {
+        this.setData({
+            course:JSON.parse(options.course)
+        })
+        console.log(this.data.course._id)
+    },
+
+})
